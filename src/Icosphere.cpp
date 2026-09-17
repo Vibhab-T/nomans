@@ -16,7 +16,8 @@ Vector3 add(Vector3 a, Vector3 b) {
   return Vector3{a.x + b.x, a.y + b.y, a.z + b.z};
 }
 
-Icosphere::Icosphere(uint8_t fd) : fragDepth(fd) {
+Icosphere::Icosphere(uint8_t fd, Color mc, Color wc)
+    : fragDepth(fd), modelColor(mc), wireColor(wc) {
   m_fragment(fd);
   UploadMesh(&mesh, true);
   model = LoadModelFromMesh(mesh);

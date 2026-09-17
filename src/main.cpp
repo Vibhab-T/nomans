@@ -2,9 +2,9 @@
 #include "raylib/raylib.h"
 #include <cstdint>
 #define RAYGUI_IMPLEMENTATION
-#include "raylib/raygui.h"
-
 #include "Mouse.h"
+#include "StarSystem.h"
+#include "raylib/raygui.h"
 
 void sDebugUiSystem(bool &drawWire, bool &drawModel, uint8_t &fragDepth,
                     uint8_t &scale) {
@@ -23,14 +23,11 @@ void sDebugUiSystem(bool &drawWire, bool &drawModel, uint8_t &fragDepth,
   GuiSlider((Rectangle){1710, 215, 180, 20}, "0", "10", &scaleValue, 0, 10);
   scale = static_cast<uint8_t>(scaleValue);
 
-  char centerText[] = "Press 'Z' to center the model.";
-  char cameraText[] = "Press 'Tab' to toggle camera movement";
-  char exitText[] = "Press 'Esc' to exit";
-
+  static char centerText[] = "Press 'Z' to center the model.";
+  static char cameraText[] = "Press 'Tab' to toggle camera movement";
+  static char exitText[] = "Press 'Esc' to exit";
   GuiTextBox(Rectangle(1705, 250, 200, 50), centerText, 20, false);
-
   GuiTextBox(Rectangle(1705, 310, 200, 50), cameraText, 20, false);
-
   GuiTextBox(Rectangle(1705, 370, 200, 50), exitText, 20, false);
 }
 
@@ -49,14 +46,15 @@ int main() {
   camera.fovy = 45.0f;
   camera.projection = CAMERA_PERSPECTIVE;
 
-  // PLANETS
+  // THE SUN
   Icosphere sphere = Icosphere(0);
   bool drawWire = false;
   bool drawModel = true;
   uint8_t fragDepth = 0;
   uint8_t scale = 1;
 
-  DisableCursor();
+  // SYSTEM
+  StarSystem system = StarSystem(4);
 
   SetTargetFPS(60);
 
@@ -72,6 +70,9 @@ int main() {
 
     sphere.setFragmentDepth(fragDepth);
 
+    system.update();
+
+
     BeginDrawing();
     {
       ClearBackground(WHITE);
@@ -84,6 +85,17 @@ int main() {
         }
         if (drawModel) {
           DrawModel(sphere.model, sphere.position, scale, GREEN);
+        }
+        for (std::size_t i = 0; i < system.planets.size(); i++) {
+          Icosphere &selectedPlanet = system.planets[i];
+          if (drawWire) {
+            DrawModelWires(selectedPlanet.model, selectedPlanet.position, scale,
+                           selectedPlanet.wireColor);
+          }
+          if (drawModel) {
+            DrawModel(selectedPlanet.model, selectedPlanet.position, scale,
+                      selectedPlanet.modelColor);
+          }
         }
       }
       EndMode3D();

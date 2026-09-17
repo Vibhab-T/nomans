@@ -33,8 +33,10 @@ public:
   Model model{};
   uint8_t fragDepth;
   Vector3 position{0, 0, 0};
+  Color modelColor;
+  Color wireColor;
 
-  Icosphere(uint8_t fd);
+  Icosphere(uint8_t fd, Color mc = YELLOW, Color wc = GREEN);
   ~Icosphere();
 
   void setFragmentDepth(uint8_t fd);
