@@ -1,4 +1,7 @@
+#pragma once
+
 #include "raylib/raylib.h"
+
 
 #include <array>
 #include <cstdint>
@@ -33,6 +36,7 @@ public:
   Vector3 position{0, 0, 0};
 
   Icosphere(uint8_t fd);
+  ~Icosphere();
 
 private:
   void m_fragment(uint8_t fragDepth);

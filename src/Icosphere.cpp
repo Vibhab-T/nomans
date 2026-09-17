@@ -42,6 +42,10 @@ Icosphere::Icosphere(uint8_t fd) : fragDepth(fd) {
   model = LoadModelFromMesh(mesh);
 }
 
+Icosphere::~Icosphere() {
+  UnloadModel(model);
+}
+
 Vector3 Icosphere::m_slerp(Vector3 p0, Vector3 p1, float t) {
   float th = acos(dot(p0, p1));
   Vector3 slerp = add(mul(p0, (sin((1 - t) * th) / sin(th))),

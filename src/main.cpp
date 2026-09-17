@@ -1,11 +1,16 @@
 #include "Icosphere.h"
 #include "raylib/raylib.h"
+#define RAYGUI_IMPLEMENTATION
+#include "raylib/raygui.h"
+
+#include "Mouse.h"
 
 int main() {
-  const int screenWidth = 1000;
-  const int screenHeight = 700;
+  const int screenWidth = 1920;
+  const int screenHeight = 1080;
 
   InitWindow(screenWidth, screenHeight, "Ico");
+  Mouse::setCapture(true);
 
   // Camera
   Camera3D camera = {};
@@ -28,7 +33,11 @@ int main() {
   while (!WindowShouldClose()) {
 
     // UPDATES
-    UpdateCamera(&camera, CAMERA_FREE);
+    Mouse::update();
+    if (Mouse::isCaptured()) {
+      UpdateCamera(&camera, CAMERA_FREE);
+    }
+
     if (IsKeyPressed(KEY_Z))
       camera.target = (Vector3){0, 0, 0};
 
@@ -43,6 +52,7 @@ int main() {
         DrawModel(sphereTwo.model, sphereTwo.position, 1, RED);
       }
       EndMode3D();
+      GuiPanel((Rectangle){1700, 0, 220, 1080}, "Ico Debug Panel");
     }
     EndDrawing();
   }
