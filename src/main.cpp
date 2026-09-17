@@ -1,21 +1,27 @@
 #include "Icosphere.h"
 #include "raylib/raylib.h"
+#include <cstdint>
 #define RAYGUI_IMPLEMENTATION
 #include "raylib/raygui.h"
 
 #include "Mouse.h"
 
-void sUiSystem(bool &drawWire, bool &drawModel, uint8_t &fragDepth) {
+void sDebugUiSystem(bool &drawWire, bool &drawModel, uint8_t &fragDepth,
+                    uint8_t &scale) {
   GuiPanel((Rectangle){1695, 0, 225, 1080}, "Ico Debug Panel");
 
   GuiCheckBox((Rectangle){1705, 50, 20, 20}, "Draw Wires", &drawWire);
   GuiCheckBox((Rectangle){1705, 100, 20, 20}, "Draw Model", &drawModel);
 
   GuiLabel((Rectangle){1705, 150, 100, 20}, "Fragment Depth");
+  float fragValue = fragDepth;
+  GuiSlider((Rectangle){1710, 170, 180, 20}, "0", "8", &fragValue, 0, 8);
+  fragDepth = static_cast<uint8_t>(fragValue);
 
-  float value = fragDepth;
-  GuiSlider((Rectangle){1710, 175, 180, 20}, "0", "8", &value, 0, 8);
-  fragDepth = static_cast<uint8_t>(value);
+  GuiLabel((Rectangle){1705, 195, 100, 20}, "Scale");
+  float scaleValue = scale;
+  GuiSlider((Rectangle){1710, 215, 180, 20}, "0", "10", &scaleValue, 0, 10);
+  scale = static_cast<uint8_t>(scaleValue);
 
   char centerText[] = "Press 'Z' to center the model.";
   char cameraText[] = "Press 'Tab' to toggle camera movement";
@@ -48,6 +54,7 @@ int main() {
   bool drawWire = false;
   bool drawModel = true;
   uint8_t fragDepth = 0;
+  uint8_t scale = 1;
 
   DisableCursor();
 
@@ -73,16 +80,16 @@ int main() {
       {
         DrawGrid(100, 1.f);
         if (drawWire) {
-          DrawModelWires(sphere.model, sphere.position, 1, RED);
+          DrawModelWires(sphere.model, sphere.position, scale, RED);
         }
         if (drawModel) {
-          DrawModel(sphere.model, sphere.position, 1, GREEN);
+          DrawModel(sphere.model, sphere.position, scale, GREEN);
         }
       }
       EndMode3D();
     }
 
-    sUiSystem(drawWire, drawModel, fragDepth);
+    sDebugUiSystem(drawWire, drawModel, fragDepth, scale);
     EndDrawing();
   }
   CloseWindow();
