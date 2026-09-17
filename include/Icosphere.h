@@ -2,7 +2,6 @@
 
 #include "raylib/raylib.h"
 
-
 #include <array>
 #include <cstdint>
 
@@ -37,6 +36,8 @@ public:
 
   Icosphere(uint8_t fd);
   ~Icosphere();
+
+  void setFragmentDepth(uint8_t fd);
 
 private:
   void m_fragment(uint8_t fragDepth);
