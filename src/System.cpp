@@ -2,6 +2,7 @@
 #include "Icosphere.h"
 #include "ecs/Components.h"
 #include "raylib/raylib.h"
+#include "raylib/raymath.h"
 #include <algorithm>
 #include <cmath>
 #include <memory>
@@ -64,22 +65,26 @@ void Game::updateSystem(const float dt) {
   auto planets = m_entities.getEntities("planet");
 
   for (auto &planet : planets) {
-    float &distanceOfPlanetFromSun = planet->cPlanet->distanceFromSun;
+    float &distanceFromSun = planet->cPlanet->distanceFromSun;
     bool &isClockwise = planet->cPlanet->isRotatingClockwise;
     float &revSpeed = planet->cPlanet->revolutionSpeed;
     float &rotSpeed = planet->cPlanet->rotationSpeed;
     auto &pos = planet->cTransform->position;
     float &ang = planet->cPlanet->angleFromCenter;
+    auto &vel = planet->cTransform->velocity;
 
-    if (isClockwise) {
-      ang += revSpeed * dt;
-    } else {
-      ang -= revSpeed * dt;
-    }
+    ang += (isClockwise ? 1.f : -1.f) * revSpeed * dt;
 
-    float nextX = std::cos(ang) * distanceOfPlanetFromSun;
-    float nextZ = std::sin(ang) * distanceOfPlanetFromSun;
-
-    pos = Vector3(nextX, 0, nextZ);
+    const Vector3 nextPos = {std::cos(ang) * distanceFromSun, 0.f,
+                             std::sin(ang) * distanceFromSun};
+    // normally the position atrribute of the CTransform component is calculated
+    // by the velocity attribure. here we are doing the opposite because
+    // deriving position from velocity in a circular situation requires some
+    // maths i am not willing to do this velocity attribute is required because
+    // other game systems may make use of the vel.
+    vel = dt > 0.f ? Vector3Scale(Vector3Subtract(nextPos, pos), 1.f / dt)
+                   : Vector3Zero(); // greater jadoo than the one above -
+                                    // because i dont understand yet
+    pos = Vector3Add(pos, Vector3Scale(vel, dt));
   }
 }
