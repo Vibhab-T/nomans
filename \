@@ -2,6 +2,7 @@
 #include "Mouse.h"
 #include "raylib/raylib.h"
 
+
 namespace {
 constexpr int kScreenWidth = 1920;
 constexpr int kScreenHeight = 1080;
@@ -27,7 +28,6 @@ void Game::init() {
 void Game::run() {
   // the main game loop.
   while (!WindowShouldClose() && m_running) {
-    const float dt = GetFrameTime();
     // first user input
     sUserInput();
 
@@ -39,7 +39,6 @@ void Game::run() {
       }
 
       // update planet positions around the orbit
-      updateSystem(dt);
 
       m_currFrame++;
     }
@@ -106,3 +105,4 @@ void Game::resetGame() {
 
   spawnSystem();
 }
+

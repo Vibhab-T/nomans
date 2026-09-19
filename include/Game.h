@@ -24,7 +24,7 @@ class Game {
   void spawnSystem();
 
 
-  void updateSystem();
+  void updateSystem(const float dt);
 
 public:
   Game();
