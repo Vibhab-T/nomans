@@ -16,13 +16,28 @@ class Game {
 
   void setPaused();
 
+  //game systems
   void sUserInput();
   void sRender();
   void sUi();
 
+  //game functions
   void resetGame();
   void spawnSystem();
 
+  //here now we go
+  void spawnCelestialBody(); 
+  void addCelestialBody(); //this mniggt be the same as spawnCB
+  void editCelestialBody();
+  
+  //these methods below idk if should be here or on the ui sys
+  void toggleTrail();
+  void changeCameraTarget(
+    //pass a refercne to the entiry to target to?
+  );
+
+
+ 
 
   void updateSystem(const float dt);
 

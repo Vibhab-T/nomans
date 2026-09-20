@@ -13,10 +13,10 @@ void Game::init() {
   InitWindow(kScreenWidth, kScreenHeight, "Planets");
   Mouse::setCapture(true);
 
-  m_camera.position = (Vector3){10.f, 10.f, 10.f};
+  m_camera.position = (Vector3){10.f, 100.f, 10.f};
   m_camera.target = (Vector3){0.f, 0.f, 0.f};
   m_camera.up = (Vector3){0.f, 1.f, 0.f};
-  m_camera.fovy = 45.0f;
+  m_camera.fovy = 60.0f;
   m_camera.projection = CAMERA_PERSPECTIVE;
 
   SetTargetFPS(60);
@@ -25,9 +25,11 @@ void Game::init() {
 }
 
 void Game::run() {
+
   // the main game loop.
   while (!WindowShouldClose() && m_running) {
     const float dt = GetFrameTime();
+
     // first user input
     sUserInput();
 
@@ -47,6 +49,7 @@ void Game::run() {
     // lastly render
     sRender();
   }
+
   CloseWindow();
 }
 
@@ -63,7 +66,7 @@ void Game::sUserInput() {
 void Game::sRender() {
   BeginDrawing();
   {
-    ClearBackground(WHITE);
+    ClearBackground(BLACK);
 
     BeginMode3D(m_camera);
     {
@@ -80,7 +83,7 @@ void Game::sRender() {
                   e->cTransform->scale, e->cModel->color);
       }
 
-      DrawGrid(200, 1.f);
+      //     DrawGrid(200, 1.f);
     }
 
     EndMode3D();

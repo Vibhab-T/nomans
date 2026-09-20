@@ -3,7 +3,6 @@
 #include "ecs/Components.h"
 #include "raylib/raylib.h"
 #include "raylib/raymath.h"
-#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <random>
@@ -68,7 +67,7 @@ void Game::updateSystem(const float dt) {
     float &distanceFromSun = planet->cPlanet->distanceFromSun;
     bool &isClockwise = planet->cPlanet->isRotatingClockwise;
     float &revSpeed = planet->cPlanet->revolutionSpeed;
-    float &rotSpeed = planet->cPlanet->rotationSpeed;
+    // float &rotSpeed = planet->cPlanet->rotationSpeed;
     auto &pos = planet->cTransform->position;
     float &ang = planet->cPlanet->angleFromCenter;
     auto &vel = planet->cTransform->velocity;

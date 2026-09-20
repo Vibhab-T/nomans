@@ -1,7 +1,8 @@
 #pragma once
 
+#include "CCelestialBody.h"
+#include "CPlanet.h"
 #include "Components.h"
-#include "CustomComponents.h"
 
 #include <cstddef>
 #include <memory>
@@ -22,9 +23,10 @@ public:
   std::shared_ptr<CModel> cModel;
   std::shared_ptr<CRoundCollision> cRoundCollision;
   std::shared_ptr<CPlanet> cPlanet;
+  std::shared_ptr<CCelestialBody> cCelestialBody;
 
   bool isActive() const;
   const std::string &tag() const;
-  const size_t id() const;
+  size_t id() const;
   void destroy();
 };
