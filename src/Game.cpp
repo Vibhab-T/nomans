@@ -22,6 +22,7 @@ void Game::init() {
   SetTargetFPS(60);
 
   spawnSystem();
+
 }
 
 void Game::run() {
