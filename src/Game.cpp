@@ -5,6 +5,10 @@
 namespace {
 constexpr int kScreenWidth = 1920;
 constexpr int kScreenHeight = 1080;
+
+constexpr float kDemoBodyMass =
+    1.5e12f; // this is like a mass of an asteroid, we will need to manage the
+             // scale somehow, now this needs a bit of "unrealisticization"
 } // namespace
 
 Game::Game() { init(); }
@@ -20,9 +24,12 @@ void Game::init() {
   m_camera.projection = CAMERA_PERSPECTIVE;
 
   SetTargetFPS(60);
+  spawnCelestialBody(kDemoBodyMass, Vector3(0, 5, 0), Vector3(-10, 10, 0), 3,
+                     GREEN);
+  spawnCelestialBody(5000, Vector3(0, 5, 5), Vector3(10, -10, 10), 1, RED);
 
-  spawnSystem();
-
+  // spawnCelestialBody(kDemoBodyMass, Vector3(0, 5, 0), Vector3(10, 10, 10), 1,
+  // YELLOW);
 }
 
 void Game::run() {
@@ -41,8 +48,8 @@ void Game::run() {
         UpdateCamera(&m_camera, CAMERA_FREE);
       }
 
-      // update planet positions around the orbit
-      updateSystem(dt);
+      updateCelestialBodies(dt);
+      updateTrails();
 
       m_currFrame++;
     }
@@ -73,9 +80,7 @@ void Game::sRender() {
     {
 
       auto allEntities = m_entities.getEntities();
-      for (auto &e : allEntities) { // since this returns all entities, both the
-                                    // sun and planets will be herem no need for
-                                    // tag specific drawing right mow
+      for (auto &e : allEntities) {
         if (!e->cModel || !e->cTransform) {
           continue;
         }
@@ -84,7 +89,20 @@ void Game::sRender() {
                   e->cTransform->scale, e->cModel->color);
       }
 
-      //     DrawGrid(200, 1.f);
+      if (m_trailsEnabled) {
+        for (auto &e : m_entities.getEntities("celestial")) {
+          if (!e->cTrail)
+            continue;
+          const auto &pts = e->cTrail->points;
+          const Color trailColor = e->cModel ? e->cModel->color : GRAY;
+
+          for (std::size_t i = 1; i < pts.size(); i++) {
+            DrawLine3D(pts[i - 1], pts[i], trailColor);
+          }
+        }
+      }
+
+      // DrawGrid(200, 1.f);
     }
 
     EndMode3D();
@@ -93,11 +111,11 @@ void Game::sRender() {
     if (m_paused) {
       DrawText("PAUSED", 10, 40, 20, RED);
     }
+
+    sUi();
   }
   EndDrawing();
 }
-
-void Game::sUi() {}
 
 void Game::resetGame() {
   for (auto &e : m_entities.getEntities()) {
@@ -107,6 +125,4 @@ void Game::resetGame() {
 
   m_currFrame = 0;
   m_paused = false;
-
-  spawnSystem();
 }

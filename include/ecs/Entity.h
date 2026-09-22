@@ -1,7 +1,7 @@
 #pragma once
 
+#include "CTrail.h"
 #include "CCelestialBody.h"
-#include "CPlanet.h"
 #include "Components.h"
 
 #include <cstddef>
@@ -13,7 +13,7 @@ class Entity {
 
   bool m_active{true};
   size_t m_id{0};
-  std::string m_tag{"defualt"};
+  std::string m_tag{"default"};
 
   Entity(const size_t id, const std::string &tag) : m_id(id), m_tag(tag) {}
 
@@ -22,8 +22,10 @@ public:
   std::shared_ptr<CTransform> cTransform;
   std::shared_ptr<CModel> cModel;
   std::shared_ptr<CRoundCollision> cRoundCollision;
-  std::shared_ptr<CPlanet> cPlanet;
+
+  //custom component pointers
   std::shared_ptr<CCelestialBody> cCelestialBody;
+  std::shared_ptr<CTrail> cTrail;
 
   bool isActive() const;
   const std::string &tag() const;

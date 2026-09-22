@@ -12,6 +12,8 @@ class Game {
   bool m_paused{false};
   bool m_running{true};
 
+  bool m_trailsEnabled{true};
+
   void init();
 
   void setPaused();
@@ -23,22 +25,19 @@ class Game {
 
   // game functions
   void resetGame();
-  void spawnSystem();
 
   // here now we go
-  void spawnCelestialBody(const float m, const Vector3 &v, const Vector3 &p);
-  void addCelestialBody(); // this mniggt be the same as spawnCB
+  void spawnCelestialBody(const float m, const Vector3 &v, const Vector3 &p, const float r, const Color c);
   void editCelestialBody();
 
   // these methods below idk if should be here or on the ui sys
-  void toggleTrail();
   void changeCameraTarget(
       // pass a refercne to the entiry to target to?
   );
 
   //updates
-  void updateCelestialBodies(); //here is where everything should happen 
-  void updateSystem(const float dt);
+  void updateCelestialBodies(const float dt); //here is where everything should happen 
+  void updateTrails();
 
 public:
   Game();

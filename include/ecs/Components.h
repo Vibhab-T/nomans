@@ -7,6 +7,7 @@ public:
   Vector3 position{0.f, 0.f, 0.f};
   Vector3 velocity{0.f, 0.f, 0.f};
   float angle{0.f};
+  // angle is unused rn, this is for rotation
   float scale{0.f};
 
   CTransform(const Vector3 &p, const Vector3 &v, float a, float s)
