@@ -33,11 +33,10 @@ void Game::init() {
 
   SetTargetFPS(60);
 
-
   /*
    *AI CODE BELOW TO SPAWN PLANET AND SUN IN A ORIBITNG POSITION
-   NEEDS TO BE REPLACED WITH PROPER SPAWNING OF CELESTIAL BODIES FROM THE DEBUG PANEL 
-   BY JUST DRAGGING AND DROPPING
+   NEEDS TO BE REPLACED WITH PROPER SPAWNING OF CELESTIAL BODIES FROM THE DEBUG
+   PANEL BY JUST DRAGGING AND DROPPING
    * */
 
   // the sun, stationary at the origin
@@ -62,8 +61,7 @@ void Game::init() {
   for (const Spec &p : planets) {
     const float angleRad = p.angleDeg * DEG2RAD;
 
-    const Vector3 position = {p.orbitRadius * cosf(angleRad),
-                             0.f,
+    const Vector3 position = {p.orbitRadius * cosf(angleRad), 0.f,
                               p.orbitRadius * sinf(angleRad)};
 
     // v_circular = sqrt(G * M / r)
@@ -76,7 +74,6 @@ void Game::init() {
 
     spawnCelestialBody(p.mass, velocity, position, p.radius, p.color);
   }
-
 
   /*
    *AI CODE ENDS
