@@ -25,5 +25,10 @@ void setCapture(bool value) {
   } else {
     EnableCursor();
   }
-} // namespace Mouse
 }
+
+Vector3 position() {
+  const Vector2 screenPos = GetMousePosition();
+  return (Vector3){screenPos.x, screenPos.y, 0.f};
+} // namespace Mouse
+} // namespace Mouse

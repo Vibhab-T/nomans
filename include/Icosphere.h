@@ -4,6 +4,6 @@
 
 #include <cstdint>
 
-namespace Icosphere{
+namespace Icosphere {
 Model generate(uint8_t subdivisions);
 }
