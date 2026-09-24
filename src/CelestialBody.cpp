@@ -5,7 +5,6 @@
 #include "ecs/Components.h"
 #include "raylib/raylib.h"
 #include "raylib/raymath.h"
-#include <cmath>
 #include <memory>
 
 void Game::spawnCelestialBody(const float mass, const Vector3 &velocity,
@@ -30,54 +29,38 @@ void Game::spawnCelestialBody(const float mass, const Vector3 &velocity,
 }
 
 void Game::updateCelestialBodies(const float dt) {
+  constexpr float kSofteningFactor = 20.5f;
   const auto &bodies = m_entities.getEntities("celestial");
 
-  // the net gravitational force on every body
+  // first update velocity
   for (auto &body : bodies) {
-    Vector3 resultantForce{0.f, 0.f, 0.f};
 
     for (auto &other : bodies) {
       if (body->id() == other->id()) {
         continue;
       }
+      Vector3 direction = Vector3Subtract(other->cTransform->position,
+                                          body->cTransform->position);
 
-      //   F = G * m1 * m2 / r^2
-      const float Gm1m2 =
-          Physics::G * body->cCelestialBody->mass * other->cCelestialBody->mass;
+      float sqrDist = Vector3LengthSqr(direction) + kSofteningFactor;
 
-      const Vector3 diff = Vector3Subtract(other->cTransform->position,
-                                           body->cTransform->position);
-      const float r = Vector3Length(diff);
+      Vector3 forceDirection = Vector3Normalize(direction);
 
-      // softening: floor r at the sum of the two radii, so F doesn't spike
-      // to infinity as the bodies get close
-      // / r_eff = max(r, radius1 + radius2)
-      const float minDistance =
-          body->cTransform->scale + other->cTransform->scale;
-      const float rEff = fmaxf(r, minDistance);
-      const float forceMagnitude = Gm1m2 / (rEff * rEff);
+      float forceMagnitude = Physics::G * body->cCelestialBody->mass *
+                             other->cCelestialBody->mass / sqrDist;
 
-      // direction is the r vector's unit vector.
-      const Vector3 direction = Vector3Scale(diff, 1.f / r);
-      // force vector = direction * magnitude
-      const Vector3 force = Vector3Scale(direction, forceMagnitude);
+      Vector3 force = Vector3Scale(forceDirection, forceMagnitude);
 
-      resultantForce = Vector3Add(resultantForce, force);
+      Vector3 acceleration =
+          Vector3Scale(force, 1.0f / body->cCelestialBody->mass);
+
+      body->cTransform->velocity = Vector3Add(body->cTransform->velocity,
+                                              Vector3Scale(acceleration, dt));
     }
-
-    body->cCelestialBody->resultantForce = resultantForce;
   }
 
+  // then update the positions
   for (auto &body : bodies) {
-    //   F = m * a    a = F / m
-    const Vector3 acceleration = Vector3Scale(
-        body->cCelestialBody->resultantForce, 1.f / body->cCelestialBody->mass);
-
-    //   v = u + a * dt
-    body->cTransform->velocity =
-        Vector3Add(body->cTransform->velocity, Vector3Scale(acceleration, dt));
-    // same for position
-    //    p = p + v * dt
     body->cTransform->position =
         Vector3Add(body->cTransform->position,
                    Vector3Scale(body->cTransform->velocity, dt));

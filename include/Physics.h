@@ -1,5 +1,5 @@
-#pragma once 
+#pragma once
 
 namespace Physics {
-constexpr float G = 6.674e-11f * 25;
+constexpr float G = 6.674e-11f * 45;
 }
