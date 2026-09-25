@@ -10,7 +10,7 @@ constexpr float kDemoBodyMass =
     1.5e12f; // this is like a mass of an asteroid, we will need to manage the
              // scale somehow, now this needs a bit of "unrealisticization"
 
-constexpr float kSunMass = kDemoBodyMass * 20.f; //
+constexpr float kSunMass = kDemoBodyMass * 300.f; //
 constexpr float kSunRadius = 5.f;
 } // namespace
 
@@ -30,10 +30,11 @@ void Game::init() {
 
   SetTargetFPS(60);
 
+  spawnCelestialBody(kDemoBodyMass + kSunMass, {0, 5, 0}, {0, 0, 0}, kSunRadius, YELLOW);
 
-  spawnCelestialBody(kDemoBodyMass, {0, 0, 10}, {10, 0, 0}, 1, RED);
+  spawnCelestialBody(kDemoBodyMass, {50, 0, 80}, {50, 0, 0}, 1, BLUE);
 
- spawnCelestialBody(kDemoBodyMass, {0, 0, -10}, {-10, 0, 0}, 1, BLUE);
+  spawnCelestialBody(kDemoBodyMass, {40, 0, 80}, {100, 0, 0}, 1, RED);
 }
 void Game::run() {
 
