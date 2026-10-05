@@ -1,0 +1,621 @@
+============================================================
+DIRECTORY TREE
+============================================================
+
+src/
+ecs/
+├── Entity.cpp
+└── EntityManager.cpp
+Camera.cpp
+CelestialBody.cpp
+DebugPanel.cpp
+Game.cpp
+Icosphere.cpp
+Mouse.cpp
+Player.cpp
+Trails.cpp
+main.cpp
+
+
+============================================================
+FILES
+============================================================
+
+============================================================
+FILE: Camera.cpp
+============================================================
+
+#include "Game.h"
+#include "Mouse.h"
+#include "raylib/raylib.h"
+
+void Game::updateCamera(const float dt) {
+  // dt unused, c++ magic to let it know its unused
+  (void)dt; // or something
+
+  // freefly
+  if (!m_cameraTarget) {
+    if (Mouse::isCaptured()) {
+      UpdateCamera(&m_camera, CAMERA_FREE);
+    }
+    return;
+  }
+
+  const Vector3 &target = m_cameraTarget->cTransform->position;
+  m_camera.target = target;
+
+  m_camera.position = (Vector3){target.x, target.y, target.z + 100.f};
+}
+
+void Game::changeCameraTarget(const std::shared_ptr<Entity> &entity) {
+  // entity might be null
+  m_cameraTarget = entity;
+}
+
+void Game::cycleCameraTarget() {
+  const auto &bodies = m_entities.getEntities("celestial");
+
+  if (bodies.empty()) {
+    changeCameraTarget(nullptr);
+    return;
+  }
+
+  if (!m_cameraTarget) {
+    changeCameraTarget(bodies.front());
+    return;
+  }
+
+  for (std::size_t i = 0; i < bodies.size(); i++) {
+    if (bodies[i]->id() == m_cameraTarget->id()) {
+      // if same, change to next, and none after last
+      changeCameraTarget(i + 1 < bodies.size() ? bodies[i + 1] : nullptr);
+      return;
+    }
+  }
+
+  // fallback
+  changeCameraTarget(nullptr);
+}
+
+============================================================
+FILE: CelestialBody.cpp
+============================================================
+
+#include "CCelestialBody.h"
+#include "Game.h"
+#include "Icosphere.h"
+#include "Physics.h"
+#include "ecs/Components.h"
+#include "raylib/raylib.h"
+#include "raylib/raymath.h"
+#include <memory>
+
+void Game::spawnCelestialBody(const float mass, const Vector3 &velocity,
+                              const Vector3 &position, const float radius,
+                              const Color color) {
+  auto celestialEntity = m_entities.addEntity("celestial");
+  celestialEntity->cCelestialBody = std::make_shared<CCelestialBody>(mass);
+  celestialEntity->cTransform = std::make_shared<CTransform>(
+      // position (m)
+      position,
+      // velocity (m/s)
+      velocity,
+      // angle
+      0.f,
+      // scale: Icosphere::generate builds a unit sphere (radius 1m), and
+      // DrawModel's scale multiplies that directly, so passing radius here
+      // renders the body as an actual sphere of that radius in meters.
+      radius);
+  Model celestialModel = Icosphere::generate(3);
+  celestialEntity->cModel = std::make_shared<CModel>(celestialModel, color);
+  celestialEntity->cTrail = std::make_shared<CTrail>();
+}
+
+void Game::updateCelestialBodies(const float dt) {
+  constexpr float kSofteningFactor = 20.5f;
+  const auto &bodies = m_entities.getEntities("celestial");
+
+  // first update velocity
+  for (auto &body : bodies) {
+
+    for (auto &other : bodies) {
+      if (body->id() == other->id()) {
+        continue;
+      }
+      Vector3 direction = Vector3Subtract(other->cTransform->position,
+                                          body->cTransform->position);
+
+      float sqrDist = Vector3LengthSqr(direction) + kSofteningFactor;
+
+      Vector3 forceDirection = Vector3Normalize(direction);
+
+      float forceMagnitude = Physics::G * body->cCelestialBody->mass *
+                             other->cCelestialBody->mass / sqrDist;
+
+      Vector3 force = Vector3Scale(forceDirection, forceMagnitude);
+
+      Vector3 acceleration =
+          Vector3Scale(force, 1.0f / body->cCelestialBody->mass);
+
+      body->cTransform->velocity = Vector3Add(body->cTransform->velocity,
+                                              Vector3Scale(acceleration, dt));
+    }
+  }
+
+  // then update the positions
+  for (auto &body : bodies) {
+    body->cTransform->position =
+        Vector3Add(body->cTransform->position,
+                   Vector3Scale(body->cTransform->velocity, dt));
+  }
+}
+
+============================================================
+FILE: DebugPanel.cpp
+============================================================
+
+#include "Game.h"
+#include "Mouse.h"
+#include "raylib/raylib.h"
+#define RAYGUI_IMPLEMENTATION
+#include "raylib/raygui.h"
+
+void Game::sUi() {
+  //always draw
+  DrawFPS(10, 10);
+  DrawText("Press TAB to open the debug panel", 10, 30, 20, GREEN);
+  if (m_paused) {
+    DrawText("PAUSED", 10, 50, 20, RED);
+  }
+
+  if (Mouse::isCaptured()) {
+    return;
+  }
+  //draw only if mouse released
+  GuiPanel({1520, 0, 400, 1080}, "UI Panel");
+
+  static char cameraHint[] = "Press C to cycle camera target";
+  GuiTextBox({1550, 100, 300, 100}, cameraHint, sizeof(cameraHint), false);
+
+  static char panelHint[] = "Press TAB to close this panel";
+  GuiTextBox({1550, 250, 300, 100}, panelHint, sizeof(panelHint), false);
+}
+
+============================================================
+FILE: Game.cpp
+============================================================
+
+#include "Game.h"
+#include "Mouse.h"
+#include "raylib/raylib.h"
+
+namespace {
+constexpr int kScreenWidth = 1920;
+constexpr int kScreenHeight = 1080;
+
+constexpr float kDemoBodyMass =
+    1.5e12f; // this is like a mass of an asteroid, we will need to manage the
+             // scale somehow, now this needs a bit of "unrealisticization"
+
+constexpr float kSunMass = kDemoBodyMass * 300.f; //
+constexpr float kSunRadius = 5.f;
+} // namespace
+
+Game::Game() { init(); }
+
+void Game::init() {
+  InitWindow(kScreenWidth, kScreenHeight, "Planets");
+  Mouse::setCapture(true);
+
+  m_cameraTarget = nullptr; // start in free-fly
+
+  m_camera.position = (Vector3){10.f, 100.f, 10.f};
+  m_camera.target = (Vector3){0.f, 0.f, 0.f};
+  m_camera.up = (Vector3){0.f, 1.f, 0.f};
+  m_camera.fovy = 60.0f;
+  m_camera.projection = CAMERA_PERSPECTIVE;
+
+  SetTargetFPS(60);
+
+  spawnCelestialBody(kDemoBodyMass + kSunMass, {0, 0, 0}, {0, 0, 0}, kSunRadius, YELLOW);
+
+  spawnCelestialBody(kDemoBodyMass, {50, 0, 80}, {50, 0, 0}, 1, BLUE);
+
+  spawnCelestialBody(kDemoBodyMass, {40, 0, 80}, {100, 0, 0}, 1, RED);
+
+  spawnPlayer({0.f, 0.f, 0.f});
+}
+void Game::run() {
+
+  // the main game loop.
+  while (!WindowShouldClose() && m_running) {
+    const float dt = GetFrameTime();
+
+    // first user input
+    sUserInput();
+
+    if (!m_paused) {
+      m_entities.update();
+
+      updateCamera(dt);
+
+      updateCelestialBodies(dt);
+      updateTrails();
+      updatePlayer(dt);
+
+      m_currFrame++;
+    }
+
+    // lastly render
+    sRender();
+  }
+
+  CloseWindow();
+}
+
+void Game::setPaused() { m_paused = !m_paused; }
+
+void Game::sUserInput() {
+  Mouse::update();
+
+  if (IsKeyPressed(KEY_Z)) {
+    changeCameraTarget(nullptr); // to free fly
+  }
+
+  if (IsKeyPressed(KEY_C)) {
+    cycleCameraTarget();
+  }
+}
+
+void Game::sRender() {
+  BeginDrawing();
+  {
+    ClearBackground(BLACK);
+
+    BeginMode3D(m_camera);
+    {
+
+      auto allEntities = m_entities.getEntities();
+      for (auto &e : allEntities) {
+        if (!e->cModel || !e->cTransform) {
+          continue;
+        }
+
+        DrawModel(e->cModel->model, e->cTransform->position,
+                  e->cTransform->scale, e->cModel->color);
+      }
+
+      if (m_trailsEnabled) {
+        for (auto &e : m_entities.getEntities("celestial")) {
+          if (!e->cTrail)
+            continue;
+          const auto &pts = e->cTrail->points;
+          const Color trailColor = e->cModel ? e->cModel->color : GRAY;
+
+          for (std::size_t i = 1; i < pts.size(); i++) {
+            DrawLine3D(pts[i - 1], pts[i], trailColor);
+          }
+        }
+      }
+
+      // DrawGrid(200, 1.f);
+    }
+
+    EndMode3D();
+    sUi();
+  }
+  EndDrawing();
+}
+
+void Game::resetGame() {
+  for (auto &e : m_entities.getEntities()) {
+    e->destroy();
+  }
+  m_entities.update();
+
+  m_currFrame = 0;
+  m_paused = false;
+}
+
+============================================================
+FILE: Icosphere.cpp
+============================================================
+
+#include "Icosphere.h"
+#include "raylib/raymath.h"
+
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <vector>
+
+namespace {
+
+struct Triangle {
+  Vector3 a, b, c;
+};
+
+// Base icosahedron
+constexpr std::array<Vector3, 12> kVertices = {{
+    {0.8506508f, 0.5257311f, 0.f},
+    {0.000000101405476f, 0.8506507f, -0.525731f},
+    {0.000000101405476f, 0.8506506f, 0.525731f},
+    {0.5257309f, -0.00000006267203f, -0.85065067f},
+    {0.52573115f, -0.00000006267203f, 0.85065067f},
+    {0.8506508f, -0.5257311f, 0.f},
+    {-0.52573115f, 0.00000006267203f, -0.85065067f},
+    {-0.8506508f, 0.5257311f, 0.f},
+    {-0.5257309f, 0.00000006267203f, 0.85065067f},
+    {-0.000000101405476f, -0.8506506f, -0.525731f},
+    {-0.000000101405476f, -0.8506507f, 0.525731f},
+    {-0.8506508f, -0.5257311f, 0.f},
+}};
+
+constexpr std::array<uint32_t, 60> kFaceIndices = {
+    0, 1,  2, 0, 3,  1, 0, 2,  4, 3,  0, 5,  0, 4, 5, 1,  3,  6,  1,  7,
+    2, 7,  1, 6, 4,  2, 8, 7,  8, 2,  9, 3,  5, 6, 3, 9,  5,  4,  10, 4,
+    8, 10, 9, 5, 10, 7, 6, 11, 7, 11, 8, 11, 6, 9, 8, 11, 10, 10, 11, 9};
+
+// Spherical linear interpolation between two points already on the unit sphere.
+Vector3 slerp(Vector3 p0, Vector3 p1, float t) {
+  float theta = acosf(Vector3DotProduct(p0, p1));
+  if (theta < 1e-6f) {
+    return p0;
+  }
+
+  float sinTheta = sinf(theta);
+  Vector3 result =
+      Vector3Add(Vector3Scale(p0, sinf((1.f - t) * theta) / sinTheta),
+                 Vector3Scale(p1, sinf(t * theta) / sinTheta));
+  return Vector3Normalize(result);
+}
+
+std::vector<Triangle> baseTriangles() {
+  std::vector<Triangle> triangles;
+  triangles.reserve(20);
+
+  for (std::size_t i = 0; i < kFaceIndices.size(); i += 3) {
+    triangles.push_back({
+        kVertices[kFaceIndices[i + 0]],
+        kVertices[kFaceIndices[i + 1]],
+        kVertices[kFaceIndices[i + 2]],
+    });
+  }
+
+  return triangles;
+}
+
+std::vector<Triangle> subdivide(std::vector<Triangle> triangles,
+                                uint8_t depth) {
+  for (uint8_t d = 0; d < depth; d++) {
+    std::vector<Triangle> subdivided;
+    subdivided.reserve(triangles.size() * 4);
+
+    for (const Triangle &tri : triangles) {
+      Vector3 mAB = slerp(tri.a, tri.b, 0.5f);
+      Vector3 mBC = slerp(tri.b, tri.c, 0.5f);
+      Vector3 mCA = slerp(tri.c, tri.a, 0.5f);
+
+      subdivided.push_back({tri.a, mAB, mCA});
+      subdivided.push_back({mAB, tri.b, mBC});
+      subdivided.push_back({mCA, mBC, tri.c});
+      subdivided.push_back({mAB, mBC, mCA});
+    }
+
+    triangles = std::move(subdivided);
+  }
+
+  return triangles;
+}
+
+Mesh buildMesh(const std::vector<Triangle> &triangles) {
+  Mesh mesh{};
+  mesh.triangleCount = static_cast<int>(triangles.size());
+  mesh.vertexCount = static_cast<int>(triangles.size() * 3);
+
+  mesh.vertices =
+      static_cast<float *>(MemAlloc(mesh.vertexCount * 3 * sizeof(float)));
+  mesh.normals =
+      static_cast<float *>(MemAlloc(mesh.vertexCount * 3 * sizeof(float)));
+
+  for (std::size_t i = 0; i < triangles.size(); i++) {
+    const Vector3 verts[3] = {triangles[i].a, triangles[i].b, triangles[i].c};
+
+    for (std::size_t j = 0; j < 3; j++) {
+      std::size_t v = i * 3 + j;
+
+      mesh.vertices[v * 3 + 0] = verts[j].x;
+      mesh.vertices[v * 3 + 1] = verts[j].y;
+      mesh.vertices[v * 3 + 2] = verts[j].z;
+
+      // On a unit sphere centered at the origin, the outward normal at a
+      // point is just that point's position, already normalized.
+      mesh.normals[v * 3 + 0] = verts[j].x;
+      mesh.normals[v * 3 + 1] = verts[j].y;
+      mesh.normals[v * 3 + 2] = verts[j].z;
+    }
+  }
+
+  UploadMesh(&mesh, false);
+  return mesh;
+}
+
+} // namespace
+
+Model Icosphere::generate(uint8_t subdivisions) {
+  std::vector<Triangle> triangles = subdivide(baseTriangles(), subdivisions);
+  Mesh mesh = buildMesh(triangles);
+  return LoadModelFromMesh(mesh);
+}
+
+============================================================
+FILE: Mouse.cpp
+============================================================
+
+#include "Mouse.h"
+#include "raylib/raylib.h"
+
+namespace Mouse {
+bool captured = true;
+
+void update() {
+  if (IsKeyPressed(KEY_TAB)) {
+    captured = !captured;
+
+    if (captured) {
+      DisableCursor();
+    } else {
+      EnableCursor();
+    }
+  }
+}
+
+bool isCaptured() { return captured; }
+
+void setCapture(bool value) {
+  captured = value;
+  if (captured) {
+    DisableCursor();
+  } else {
+    EnableCursor();
+  }
+}
+
+Vector3 position() {
+  const Vector2 screenPos = GetMousePosition();
+  return (Vector3){screenPos.x, screenPos.y, 0.f};
+} // namespace Mouse
+} // namespace Mouse
+
+============================================================
+FILE: Player.cpp
+============================================================
+
+#include "CPlayerState.h"
+#include "Game.h"
+#include "Icosphere.h"
+#include "ecs/Components.h"
+#include "raylib/raylib.h"
+#include "raylib/raymath.h"
+#include <memory>
+
+void Game::spawnPlayer(const Vector3 &position) {
+  // transform, playerstate, model
+  auto pEntity = m_entities.addEntity("player");
+
+  pEntity->cTransform =
+      std::make_shared<CTransform>(position, Vector3(0.f, 0.f, 0.f), 0.f, 0.5f);
+  pEntity->cPlayerState = std::make_shared<CPlayerState>();
+
+  Model playerModel = Icosphere::generate(0);
+  pEntity->cModel = std::make_shared<CModel>(playerModel, BLUE);
+}
+
+void Game::updatePlayer(const float dt) {
+  auto &player = m_entities.getEntities("player").front();
+
+  // update position last;
+  player->cTransform->position =
+      Vector3Add(player->cTransform->position,
+                 Vector3Scale(player->cTransform->velocity, dt));
+}
+
+============================================================
+FILE: Trails.cpp
+============================================================
+
+#include "Game.h"
+
+void Game::updateTrails() {
+  if (!m_trailsEnabled) {
+    return;
+  }
+
+  for (auto &body : m_entities.getEntities("celestial")) {
+    auto &points = body->cTrail->points;
+    points.push_back(body->cTransform->position);
+    if (points.size() > CTrail::maxPoints) {
+      points.erase(points.begin());
+    }
+  }
+}
+
+============================================================
+FILE: ecs/Entity.cpp
+============================================================
+
+#include "ecs/Entity.h"
+
+bool Entity::isActive() const { return m_active; }
+
+const std::string &Entity::tag() const { return m_tag; }
+
+size_t Entity::id() const { return m_id; }
+
+void Entity::destroy() { m_active = false; }
+
+============================================================
+FILE: ecs/EntityManager.cpp
+============================================================
+
+#include "ecs/EntityManager.h"
+#include "ecs/Entity.h"
+#include <algorithm>
+#include <memory>
+
+EntityManager::EntityManager() {}
+
+void EntityManager::update() {
+  // add from entities to add
+  // add to entity vec
+  // add to entity map, tag is key
+  for (auto &e : m_entitiesToAdd) {
+    m_entities.push_back(e);
+    m_entityMap[e->tag()].push_back(e);
+  }
+
+  m_entitiesToAdd.clear();
+
+  removeDeadEntities(m_entities);
+
+  for (auto &[tag, vec] : m_entityMap) {
+    removeDeadEntities(vec);
+  }
+}
+
+void EntityManager::removeDeadEntities(EntityVector &vec) {
+  vec.erase(std::remove_if(vec.begin(), vec.end(),
+                           [](const std::shared_ptr<Entity> &e) {
+                             return !e->isActive();
+                           }),
+            vec.end());
+}
+
+std::shared_ptr<Entity> EntityManager::addEntity(const std::string &tag) {
+  auto entity = std::shared_ptr<Entity>(new Entity(m_totalEntites++, tag));
+
+  m_entitiesToAdd.push_back(entity);
+
+  return entity;
+}
+
+const EntityVector &EntityManager::getEntities() { return m_entities; }
+
+const EntityVector &EntityManager::getEntities(const std::string &tag) {
+  return m_entityMap[tag];
+}
+
+============================================================
+FILE: main.cpp
+============================================================
+
+#include "Game.h"
+
+int main() {
+  Game game;
+  game.run();
+
+  return 0;
+}
+
+

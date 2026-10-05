@@ -16,7 +16,8 @@ class Game {
 
   bool m_trailsEnabled{true};
 
-  std::shared_ptr<Entity> m_cameraTarget;
+  // std::shared_ptr<Entity> m_cameraTarget; // the camera target is always
+  // going to tbe the player now
 
   void init();
 
@@ -35,7 +36,19 @@ class Game {
                           const float r, const Color c);
   void editCelestialBody();
 
-  // these methods below idk if should be here or on the ui sys
+  // PLAYER REGIOJ
+  void spawnPlayer(const Vector3 &position);
+
+  void updatePlayer(const float dt);
+
+  void spawnSpaceship(const Vector3 &position);
+  void spawnJetpack(const Vector3 &position);
+
+  // END PLAYER REGION
+
+  //  // these methods below idk if should be here or on the ui sys
+  //
+  //
 
   // updates
   void updateCelestialBodies(

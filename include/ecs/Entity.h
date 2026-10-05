@@ -1,7 +1,9 @@
 #pragma once
 
-#include "CTrail.h"
 #include "CCelestialBody.h"
+#include "CPlayerInput.h"
+#include "CPlayerState.h"
+#include "CTrail.h"
 #include "Components.h"
 
 #include <cstddef>
@@ -23,9 +25,13 @@ public:
   std::shared_ptr<CModel> cModel;
   std::shared_ptr<CRoundCollision> cRoundCollision;
 
-  //custom component pointers
+  // custom component pointers
   std::shared_ptr<CCelestialBody> cCelestialBody;
   std::shared_ptr<CTrail> cTrail;
+
+  // PLAYER POINTER REGIONS
+  std::shared_ptr<CPlayerState> cPlayerState;
+  std::shared_ptr<CPlayerInput> cPlayerInput;
 
   bool isActive() const;
   const std::string &tag() const;

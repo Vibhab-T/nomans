@@ -5,13 +5,7 @@
 namespace {
 constexpr int kScreenWidth = 1920;
 constexpr int kScreenHeight = 1080;
-
-constexpr float kDemoBodyMass =
-    1.5e12f; // this is like a mass of an asteroid, we will need to manage the
-             // scale somehow, now this needs a bit of "unrealisticization"
-
-constexpr float kSunMass = kDemoBodyMass * 300.f; //
-constexpr float kSunRadius = 5.f;
+constexpr float kDemoBodyMass = 1.5e20;
 } // namespace
 
 Game::Game() { init(); }
@@ -19,8 +13,6 @@ Game::Game() { init(); }
 void Game::init() {
   InitWindow(kScreenWidth, kScreenHeight, "Planets");
   Mouse::setCapture(true);
-
-  m_cameraTarget = nullptr; // start in free-fly
 
   m_camera.position = (Vector3){10.f, 100.f, 10.f};
   m_camera.target = (Vector3){0.f, 0.f, 0.f};
@@ -30,12 +22,16 @@ void Game::init() {
 
   SetTargetFPS(60);
 
-  spawnCelestialBody(kDemoBodyMass + kSunMass, {0, 5, 0}, {0, 0, 0}, kSunRadius, YELLOW);
+  // spawnCelestialBody(kDemoBodyMass + kSunMass, {0, 0, 0}, {0, 0, 0},
+  // kSunRadius, YELLOW);
 
-  spawnCelestialBody(kDemoBodyMass, {50, 0, 80}, {50, 0, 0}, 1, BLUE);
+  // spawnCelestialBody(kDemoBodyMass, {50, 0, 80}, {50, 0, 0}, 1, BLUE);
 
-  spawnCelestialBody(kDemoBodyMass, {40, 0, 80}, {100, 0, 0}, 1, RED);
+   spawnCelestialBody(kDemoBodyMass, {40, 0, 80}, {100, 0, 0}, 1, RED);
+
+  spawnPlayer({0.f, 0.f, 0.f});
 }
+
 void Game::run() {
 
   // the main game loop.
@@ -52,6 +48,7 @@ void Game::run() {
 
       updateCelestialBodies(dt);
       updateTrails();
+      updatePlayer(dt);
 
       m_currFrame++;
     }
@@ -64,18 +61,6 @@ void Game::run() {
 }
 
 void Game::setPaused() { m_paused = !m_paused; }
-
-void Game::sUserInput() {
-  Mouse::update();
-
-  if (IsKeyPressed(KEY_Z)) {
-    changeCameraTarget(nullptr); // to free fly
-  }
-
-  if (IsKeyPressed(KEY_C)) {
-    cycleCameraTarget();
-  }
-}
 
 void Game::sRender() {
   BeginDrawing();

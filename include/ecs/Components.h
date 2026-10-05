@@ -28,3 +28,4 @@ public:
 
   CRoundCollision(float r) : radius(r) {}
 };
+
